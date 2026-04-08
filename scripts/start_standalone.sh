@@ -26,7 +26,16 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 		echo "WARN: Cannot find $LIBJEMALLOC"
 	fi
 	export LD_LIBRARY_PATH=$PWD/internal/core/output/lib/:$LD_LIBRARY_PATH
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+	export DYLD_LIBRARY_PATH=$PWD/internal/core/output/lib:lib:$DYLD_LIBRARY_PATH
 fi
 
 echo "Starting standalone..."
-nohup ./bin/milvus run standalone --run-with-subprocess >/tmp/standalone.log 2>&1 &
+if [[ "$OSTYPE" == "darwin"* ]]; then
+	# macOS: nohup strips DYLD_* vars (SIP), and --run-with-subprocess
+	# re-execs the binary which also loses them. Run directly instead.
+	DYLD_LIBRARY_PATH=$PWD/internal/core/output/lib:lib:$DYLD_LIBRARY_PATH \
+		./bin/milvus run standalone >/tmp/standalone.log 2>&1 &
+else
+	nohup ./bin/milvus run standalone --run-with-subprocess >/tmp/standalone.log 2>&1 &
+fi
